@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 
 import argparse
 import pysam
@@ -14,9 +14,9 @@ def rename_reads(input_bam, output_bam, preserve_mtime=False, compresslevel=8):
         infile = pysam.AlignmentFile(input_bam, "rb")
 
     if output_bam == "-":
-        outfile = pysam.AlignmentFile(fileobj=sys.stdout.buffer, mode="wb", header=infile.header, compresslevel=compresslevel)
+        outfile = pysam.AlignmentFile(fileobj=sys.stdout.buffer, mode="wb", header=infile.header)
     else:
-        outfile = pysam.AlignmentFile(output_bam, "wb", header=infile.header, compresslevel=compresslevel)
+        outfile = pysam.AlignmentFile(output_bam, "wb", header=infile.header)
 
     name_map = {}
     counter = 0
@@ -71,20 +71,11 @@ def main():
         help="Set output mtime same as input (for Make/Snakemake)"
     )
     parser.add_argument(
-        "-c", "--compress", type=int, default=8,
-        help="Compression level for BAM output (0-9, default: 8)"
-    )
-    parser.add_argument(
         "--report", action="store_true",
         help="Print original and final size with percentage reduction to stderr"
     )
 
     args = parser.parse_args()
-
-    print("WARNING: bamghoster irreversibly removes base quality scores and replaces read names.", file=sys.stderr)
-    print("This is generally safe for RNA-seq workflows that do not rely on quality scores or read identifiers.", file=sys.stderr)
-    print("Examples: transcript quantification, gene expression analysis, basic alignment QC.", file=sys.stderr)
-    print("Do NOT use for workflows that require read-level identity, deduplication, variant calling, or UMI-based processing.", file=sys.stderr)
 
     if args.inplace and args.input == "-":
         parser.error("In-place mode requires a regular input file.")
@@ -97,7 +88,7 @@ def main():
             tmp_path = tmp.name
 
         try:
-            rename_reads(args.input, tmp_path, preserve_mtime=args.touch, compresslevel=args.compress)
+            rename_reads(args.input, tmp_path, preserve_mtime=args.touch)
             if args.report:
                 report_size_reduction(args.input, tmp_path)
             shutil.move(tmp_path, args.input)
@@ -105,7 +96,7 @@ def main():
             if os.path.exists(tmp_path):
                 os.remove(tmp_path)
     else:
-        rename_reads(args.input, args.output, preserve_mtime=args.touch, compresslevel=args.compress)
+        rename_reads(args.input, args.output, preserve_mtime=args.touch)
         if args.report and args.input != "-" and args.output != "-":
             report_size_reduction(args.input, args.output)
 
